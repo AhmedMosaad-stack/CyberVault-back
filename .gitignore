@@ -20,7 +20,4 @@ Thumbs.db
 
 # API docs and spec files
 *.md
-# BACKEND_SPEC.md
-# BACKEND_SPEC_PHASE2.md
-bank-system-api.postman_collection.json
 CyberVault_Postman_Collection.json
