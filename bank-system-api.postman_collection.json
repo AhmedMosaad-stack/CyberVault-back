@@ -1,0 +1,725 @@
+{
+  "info": {
+    "name": "Bank System API",
+    "description": "Complete API collection for the Bank System backend.\n\n## Setup\n1. Set the `baseUrl` variable to `http://localhost:5000` for local dev or your staging URL\n2. Run **Login** first — the collection auto-saves the access token to `accessToken` variable\n3. All protected routes use `{{accessToken}}` automatically via the collection Authorization header\n4. Refresh token is handled via HTTP-only cookie automatically by Postman\n\n## Variables\n- `baseUrl` — backend base URL\n- `accessToken` — set automatically after login\n- `testUserId` — set manually after creating a user\n- `testAccountNumber` — set manually after creating a user",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "bank-system-api-v1"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api/v1", "type": "string" },
+    { "key": "accessToken", "value": "", "type": "string" },
+    { "key": "testUserId", "value": "", "type": "string" },
+    { "key": "testAccountNumber", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:5000/", "host": ["http://localhost:5000"], "path": [""] },
+            "description": "Returns server status. No auth required. Response is NOT wrapped in { success, data } envelope."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"status\": \"ok\",\n  \"uptime\": 123.45,\n  \"version\": \"1.0.0\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "  console.log('Access token saved. mustChangePassword:', json.data.mustChangePassword);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bankUserId\": \"10000001\",\n  \"password\": \"Admin@12345\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Login with bankUserId and password. Automatically saves accessToken to collection variable. Refresh token is set as HTTP-only cookie.\n\n**Seed credentials:**\n- Admin: `10000001` / `Admin@12345`\n- Employee: `20000001` / `Employee@12345`\n- User: `30000001` / `User@12345`\n\n**Error codes:**\n- `400 ACCOUNT_INACTIVE` — user is deactivated\n- `401 INVALID_CREDENTIALS` — wrong bankUserId or password\n- `401 ACCOUNT_LOCKED` — 5 failed attempts, includes `remainingSeconds` in error.details"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"<jwt>\",\n    \"mustChangePassword\": false,\n    \"user\": {\n      \"id\": 1,\n      \"bankUserId\": \"10000001\",\n      \"name\": \"Ahmed Hassan\",\n      \"role\": \"admin\",\n      \"email\": \"admin@bank.com\"\n    }\n  }\n}"
+            },
+            {
+              "name": "401 Invalid Credentials",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_CREDENTIALS\",\n    \"message\": \"Invalid bankUserId or password\"\n  }\n}"
+            },
+            {
+              "name": "401 Account Locked",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ACCOUNT_LOCKED\",\n    \"message\": \"Account is temporarily locked\",\n    \"details\": { \"remainingSeconds\": 743 }\n  }\n}"
+            },
+            {
+              "name": "400 Account Inactive",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ACCOUNT_INACTIVE\",\n    \"message\": \"This account has been deactivated\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('accessToken', json.data.accessToken);",
+                  "  console.log('Access token refreshed and saved');",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            },
+            "description": "Rotates the refresh token. The refreshToken cookie is sent automatically by Postman. Returns a new accessToken and sets a new refreshToken cookie.\n\n**Error codes:**\n- `401 TOKEN_EXPIRED` — refresh token has expired\n- `401 TOKEN_INVALID` — no cookie or malformed token\n- `401 TOKEN_REUSE_DETECTED` — token was already used (entire family revoked)"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"accessToken\": \"<new_jwt>\"\n  }\n}"
+            },
+            {
+              "name": "401 Token Reuse Detected",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"TOKEN_REUSE_DETECTED\",\n    \"message\": \"Token reuse detected. All sessions have been revoked.\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "logout"]
+            },
+            "description": "Revokes the refresh token and clears the cookie. Requires Bearer token in Authorization header (set automatically from collection variable).\n\n**Error codes:**\n- `401 TOKEN_INVALID` — no or invalid access token"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"Logged out successfully\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile"]
+            },
+            "description": "Returns the logged-in user's profile and account details. phone and accountNumber are decrypted before returning. department is null for regular users.\n\n**Error codes:**\n- `401 TOKEN_INVALID` — missing or invalid token\n- `403 MUST_CHANGE_PASSWORD` — user must change temporary password first"
+          },
+          "response": [
+            {
+              "name": "200 User Profile",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 4,\n    \"bankUserId\": \"30000001\",\n    \"name\": \"Mohamed Ibrahim\",\n    \"email\": \"mohamed@example.com\",\n    \"phone\": \"01012345678\",\n    \"dateOfBirth\": \"1990-05-15\",\n    \"gender\": \"male\",\n    \"role\": \"user\",\n    \"mustChangePassword\": false,\n    \"department\": null,\n    \"account\": {\n      \"accountNumber\": \"12345678901234\",\n      \"accountType\": \"saving\",\n      \"currency\": \"EGP\",\n      \"balance\": 9500.00,\n      \"accountStatus\": \"active\"\n    },\n    \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "200 Employee Profile",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 2,\n    \"bankUserId\": \"20000001\",\n    \"name\": \"Sara Ali\",\n    \"email\": \"sara@bank.com\",\n    \"phone\": \"01098765432\",\n    \"dateOfBirth\": \"1992-03-20\",\n    \"gender\": \"female\",\n    \"role\": \"employee\",\n    \"mustChangePassword\": false,\n    \"department\": {\n      \"departmentName\": \"Operations\",\n      \"departmentRegion\": \"Cairo\",\n      \"departmentRole\": \"employee\",\n      \"departmentSince\": \"2026-01-01T00:00:00.000Z\",\n      \"departmentStatus\": \"active\"\n    },\n    \"account\": null,\n    \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mohamed Ibrahim Updated\",\n  \"phone\": \"01099999999\",\n  \"dateOfBirth\": \"1990-05-15\",\n  \"gender\": \"male\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile"]
+            },
+            "description": "Update own profile. All fields are optional. bankUserId, role, email, and mustChangePassword are silently ignored if included.\n\n**Error codes:**\n- `400 VALIDATION_ERROR` — invalid field values"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"name\": \"Mohamed Ibrahim Updated\",\n    \"phone\": \"01099999999\",\n    \"dateOfBirth\": \"1990-05-15\",\n    \"gender\": \"male\"\n  }\n}"
+            },
+            {
+              "name": "400 Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validation failed\",\n    \"details\": [\n      { \"field\": \"gender\", \"message\": \"Invalid enum value. Expected 'male' | 'female'\" }\n    ]\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Change My Password",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Admin@12345\",\n  \"newPassword\": \"NewPass@9999\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/profile/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["profile", "password"]
+            },
+            "description": "Change own password. newPassword must be min 8 chars, at least 1 uppercase, 1 number, 1 special character. This endpoint is EXEMPT from the MUST_CHANGE_PASSWORD block — users with a temporary password can call this even before changing it.\n\n**Error codes:**\n- `400 VALIDATION_ERROR` — password does not meet complexity rules\n- `401 INVALID_CURRENT_PASSWORD` — wrong current password"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"Password updated successfully\"\n  }\n}"
+            },
+            {
+              "name": "401 Wrong Current Password",
+              "status": "Unauthorized",
+              "code": 401,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INVALID_CURRENT_PASSWORD\",\n    \"message\": \"Current password is incorrect\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Management",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number (default: 1)" },
+                { "key": "limit", "value": "10", "description": "Items per page (default: 10, max: 100)" },
+                { "key": "name", "value": "", "description": "Filter by name (partial match)", "disabled": true },
+                { "key": "email", "value": "", "description": "Filter by email", "disabled": true },
+                { "key": "bankUserId", "value": "", "description": "Filter by bankUserId", "disabled": true },
+                { "key": "role", "value": "", "description": "Filter by role: admin | employee | user", "disabled": true }
+              ]
+            },
+            "description": "Paginated list of all users. Admin and employee only.\n\n**Error codes:**\n- `403 FORBIDDEN` — regular user calling this endpoint"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 4,\n      \"bankUserId\": \"30000001\",\n      \"name\": \"Mohamed Ibrahim\",\n      \"email\": \"mohamed@example.com\",\n      \"role\": \"user\",\n      \"isActive\": true,\n      \"mustChangePassword\": false,\n      \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 5,\n    \"pages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get User By ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Get full details of a single user including decrypted phone and accountNumber. Admin and employee only.\n\n**Error codes:**\n- `403 FORBIDDEN` — regular user\n- `404 USER_NOT_FOUND` — no user with given id"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 4,\n    \"bankUserId\": \"30000001\",\n    \"name\": \"Mohamed Ibrahim\",\n    \"email\": \"mohamed@example.com\",\n    \"phone\": \"01012345678\",\n    \"dateOfBirth\": \"1990-05-15\",\n    \"gender\": \"male\",\n    \"role\": \"user\",\n    \"isActive\": true,\n    \"department\": null,\n    \"account\": {\n      \"accountNumber\": \"12345678901234\",\n      \"accountType\": \"saving\",\n      \"currency\": \"EGP\",\n      \"balance\": 9500.00,\n      \"accountStatus\": \"active\"\n    },\n    \"createdAt\": \"2026-01-01T00:00:00.000Z\"\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"USER_NOT_FOUND\",\n    \"message\": \"User not found\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const json = pm.response.json();",
+                  "  pm.collectionVariables.set('testUserId', json.data.user.id);",
+                  "  pm.collectionVariables.set('testAccountNumber', json.data.account.accountNumber);",
+                  "  console.log('Created user id:', json.data.user.id);",
+                  "  console.log('Temporary password:', json.data.temporaryPassword);",
+                  "  console.log('Account number:', json.data.account.accountNumber);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test User\",\n  \"email\": \"testuser@example.com\",\n  \"phone\": \"01011112222\",\n  \"dateOfBirth\": \"1995-08-20\",\n  \"gender\": \"male\",\n  \"nationalId\": \"29508201234567\",\n  \"account\": {\n    \"accountType\": \"saving\",\n    \"currency\": \"EGP\",\n    \"balance\": 5000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Create a new user. Admin and employee only. bankUserId is auto-generated. temporaryPassword is returned once — it is `Bank@<bankUserId>`. User must change it on first login.\n\nAuto-saves `testUserId` and `testAccountNumber` to collection variables.\n\n**Error codes:**\n- `400 VALIDATION_ERROR`\n- `409 EMAIL_EXISTS`\n- `409 NATIONAL_ID_EXISTS`"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": 9,\n      \"bankUserId\": \"45678901\",\n      \"name\": \"Test User\",\n      \"role\": \"user\",\n      \"email\": \"testuser@example.com\"\n    },\n    \"account\": {\n      \"accountNumber\": \"12345678901234\",\n      \"accountType\": \"saving\",\n      \"accountStatus\": \"active\",\n      \"currency\": \"EGP\",\n      \"balance\": 5000.00\n    },\n    \"temporaryPassword\": \"Bank@45678901\"\n  }\n}"
+            },
+            {
+              "name": "409 Email Exists",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"EMAIL_EXISTS\",\n    \"message\": \"A user with this email already exists\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"New Employee\",\n  \"email\": \"newemployee@bank.com\",\n  \"phone\": \"01033334444\",\n  \"dateOfBirth\": \"1993-11-10\",\n  \"gender\": \"female\",\n  \"nationalId\": \"29311101234568\",\n  \"department\": {\n    \"departmentName\": \"Customer Service\",\n    \"departmentRegion\": \"Alexandria\",\n    \"departmentRole\": \"employee\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/employees",
+              "host": ["{{baseUrl}}"],
+              "path": ["employees"]
+            },
+            "description": "Create a new employee. Admin only. No account is created for employees. departmentSince and departmentStatus are auto-set.\n\n**Error codes:**\n- `400 VALIDATION_ERROR`\n- `403 FORBIDDEN` — employee calling this endpoint\n- `409 EMAIL_EXISTS`\n- `409 NATIONAL_ID_EXISTS`"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"user\": {\n      \"id\": 10,\n      \"bankUserId\": \"56789012\",\n      \"role\": \"employee\",\n      \"name\": \"New Employee\",\n      \"email\": \"newemployee@bank.com\"\n    },\n    \"department\": {\n      \"departmentName\": \"Customer Service\",\n      \"departmentRegion\": \"Alexandria\",\n      \"departmentRole\": \"employee\",\n      \"departmentSince\": \"2026-05-26T10:00:00.000Z\",\n      \"departmentStatus\": \"active\"\n    },\n    \"temporaryPassword\": \"Bank@56789012\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"isActive\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Update a user's profile. Admin and employee only. bankUserId, role, and email are silently ignored if included.\n\n**Error codes:**\n- `400 VALIDATION_ERROR`\n- `403 FORBIDDEN`\n- `404 USER_NOT_FOUND`"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"name\": \"Updated Name\",\n    \"isActive\": true\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}"]
+            },
+            "description": "Delete a user and all related data. Admin only. Deletes in order: notifications → audit_events → refresh_tokens → transactions → account → user.\n\n**Error codes:**\n- `403 FORBIDDEN` — employee or user calling this\n- `404 USER_NOT_FOUND`\n- `409 CANNOT_DELETE_ADMIN` — cannot delete the last admin"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"User deleted successfully\"\n  }\n}"
+            },
+            {
+              "name": "409 Cannot Delete Admin",
+              "status": "Conflict",
+              "code": 409,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"CANNOT_DELETE_ADMIN\",\n    \"message\": \"Cannot delete the last admin account\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Unlock User",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{testUserId}}/unlock",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{testUserId}}", "unlock"]
+            },
+            "description": "Reset a locked user's failedLoginAttempts to 0 and clear lockoutUntil. Admin only.\n\n**Error codes:**\n- `403 FORBIDDEN` — employee or user\n- `404 USER_NOT_FOUND`"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"User unlocked successfully\"\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Lookup Account",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/accounts/lookup?accountNumber={{testAccountNumber}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["accounts", "lookup"],
+              "query": [
+                { "key": "accountNumber", "value": "{{testAccountNumber}}", "description": "14-digit account number" }
+              ]
+            },
+            "description": "Look up an account by account number. Used before a transfer to verify the destination account exists. Returns the account id needed for frontend transfer flows.\n\n**Error codes:**\n- `404 ACCOUNT_NOT_FOUND`"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"id\": 1,\n    \"accountNumber\": \"12345678901234\",\n    \"currency\": \"EGP\",\n    \"accountStatus\": \"active\",\n    \"owner\": {\n      \"name\": \"Mohamed Ibrahim\",\n      \"bankUserId\": \"30000001\"\n    }\n  }\n}"
+            },
+            {
+              "name": "404 Not Found",
+              "status": "Not Found",
+              "code": 404,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ACCOUNT_NOT_FOUND\",\n    \"message\": \"Account not found\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Credit Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{testAccountNumber}}\",\n  \"amount\": 500.00,\n  \"description\": \"Deposit from test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions/credit",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions", "credit"]
+            },
+            "description": "Deposit money into any account. No ownership restriction — any authenticated user can credit any account. Amount must be > 0 and max 2 decimal places.\n\n**Error codes:**\n- `400 VALIDATION_ERROR` — invalid amount or missing accountNumber\n- `403 ACCOUNT_FROZEN` — account is not active\n- `404 ACCOUNT_NOT_FOUND`"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"transaction\": {\n      \"id\": 21,\n      \"type\": \"credit\",\n      \"amount\": 500.00,\n      \"currency\": \"EGP\",\n      \"balanceAfter\": 10500.00,\n      \"createdAt\": \"2026-05-26T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "403 Account Frozen",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ACCOUNT_FROZEN\",\n    \"message\": \"This account is not active\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Debit Account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountNumber\": \"{{testAccountNumber}}\",\n  \"amount\": 200.00,\n  \"description\": \"Withdrawal test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions/debit",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions", "debit"]
+            },
+            "description": "Withdraw money from YOUR OWN account only. The accountNumber must belong to the logged-in user — all roles including admin are restricted.\n\n**Error codes:**\n- `400 VALIDATION_ERROR`\n- `400 INSUFFICIENT_FUNDS` — balance would go negative\n- `403 ACCOUNT_FROZEN` — account is not active\n- `403 ACCOUNT_NOT_OWNED` — accountNumber does not belong to logged-in user\n- `404 ACCOUNT_NOT_FOUND`"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"transaction\": {\n      \"id\": 22,\n      \"type\": \"debit\",\n      \"amount\": 200.00,\n      \"currency\": \"EGP\",\n      \"balanceAfter\": 9800.00,\n      \"createdAt\": \"2026-05-26T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Insufficient Funds",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"INSUFFICIENT_FUNDS\",\n    \"message\": \"Insufficient funds in account\"\n  }\n}"
+            },
+            {
+              "name": "403 Not Owned",
+              "status": "Forbidden",
+              "code": 403,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"ACCOUNT_NOT_OWNED\",\n    \"message\": \"This account does not belong to you\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Transfer",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sourceAccountNumber\": \"{{testAccountNumber}}\",\n  \"destinationAccountNumber\": \"REPLACE_WITH_DESTINATION_ACCOUNT\",\n  \"amount\": 300.00,\n  \"description\": \"Transfer test\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/transactions/transfer",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions", "transfer"]
+            },
+            "description": "Transfer money between two accounts. sourceAccountNumber must belong to the logged-in user. destinationAccountNumber has no ownership restriction. Both accounts must have the same currency.\n\n**Error codes:**\n- `400 VALIDATION_ERROR`\n- `400 INSUFFICIENT_FUNDS`\n- `400 CURRENCY_MISMATCH` — source and destination have different currencies\n- `400 SAME_ACCOUNT` — source and destination are the same\n- `403 ACCOUNT_FROZEN` — either account is not active\n- `403 ACCOUNT_NOT_OWNED` — sourceAccountNumber does not belong to logged-in user\n- `404 ACCOUNT_NOT_FOUND` — either account not found"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"transaction\": {\n      \"id\": 23,\n      \"type\": \"transfer\",\n      \"amount\": 300.00,\n      \"currency\": \"EGP\",\n      \"balanceAfter\": 9500.00,\n      \"createdAt\": \"2026-05-26T10:00:00.000Z\"\n    }\n  }\n}"
+            },
+            {
+              "name": "400 Currency Mismatch",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"CURRENCY_MISMATCH\",\n    \"message\": \"Cannot transfer between accounts with different currencies\"\n  }\n}"
+            },
+            {
+              "name": "400 Same Account",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"SAME_ACCOUNT\",\n    \"message\": \"Source and destination accounts cannot be the same\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Transaction History (Own)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/history?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions", "history"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "type", "value": "All", "description": "All | credit | debit | transfer", "disabled": true },
+                { "key": "startDate", "value": "2026-01-01", "description": "YYYY-MM-DD", "disabled": true },
+                { "key": "endDate", "value": "2026-12-31", "description": "YYYY-MM-DD", "disabled": true },
+                { "key": "minAmount", "value": "100", "disabled": true },
+                { "key": "maxAmount", "value": "1000", "disabled": true }
+              ]
+            },
+            "description": "Get own transaction history. Results ordered by createdAt DESC. amount is returned as Number (not string). destinationAccount is decrypted accountNumber for transfers, null for credit/debit."
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": [\n    {\n      \"id\": 23,\n      \"type\": \"transfer\",\n      \"amount\": 300.00,\n      \"currency\": \"EGP\",\n      \"destinationAccount\": \"98765432109876\",\n      \"description\": \"Transfer test\",\n      \"balanceAfter\": 9500.00,\n      \"createdAt\": \"2026-05-26T10:00:00.000Z\"\n    },\n    {\n      \"id\": 22,\n      \"type\": \"debit\",\n      \"amount\": 200.00,\n      \"currency\": \"EGP\",\n      \"destinationAccount\": null,\n      \"description\": \"Withdrawal test\",\n      \"balanceAfter\": 9800.00,\n      \"createdAt\": \"2026-05-26T09:55:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 2,\n    \"pages\": 1\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Transaction History (Any User — Admin/Employee)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/transactions/history/{{testUserId}}?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["transactions", "history", "{{testUserId}}"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "type", "value": "All", "disabled": true },
+                { "key": "startDate", "value": "2026-01-01", "disabled": true },
+                { "key": "endDate", "value": "2026-12-31", "disabled": true },
+                { "key": "minAmount", "value": "", "disabled": true },
+                { "key": "maxAmount", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Get any user's transaction history. Admin and employee only.\n\n**Error codes:**\n- `403 FORBIDDEN` — regular user calling this"
+          },
+          "response": [
+            {
+              "name": "200 Success",
+              "status": "OK",
+              "code": 200,
+              "body": "{\n  \"success\": true,\n  \"data\": [ ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 10,\n    \"total\": 0,\n    \"pages\": 0\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Contact",
+      "item": [
+        {
+          "name": "Submit Contact Message",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"customer@example.com\",\n  \"subject\": \"Account inquiry\",\n  \"message\": \"I have a question about my account balance.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/contact",
+              "host": ["{{baseUrl}}"],
+              "path": ["contact"]
+            },
+            "description": "Submit a contact message. Public — no authentication required. Saved to contact_messages table and logged. No email is sent in this phase.\n\n**Error codes:**\n- `400 VALIDATION_ERROR` — missing or invalid fields"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created",
+              "code": 201,
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"message\": \"Message received\"\n  }\n}"
+            },
+            {
+              "name": "400 Validation Error",
+              "status": "Bad Request",
+              "code": 400,
+              "body": "{\n  \"success\": false,\n  \"error\": {\n    \"code\": \"VALIDATION_ERROR\",\n    \"message\": \"Validation failed\",\n    \"details\": [\n      { \"field\": \"subject\", \"message\": \"Required\" }\n    ]\n  }\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Error Reference",
+      "description": "Reference folder — not actual requests. Documents all error codes returned by the API.",
+      "item": [
+        {
+          "name": "All Error Codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "http://localhost:5000/", "host": ["http://localhost:5000"], "path": [""] },
+            "description": "## All Error Codes\n\n| Code | HTTP | Meaning |\n|---|---|---|\n| `VALIDATION_ERROR` | 400 | Zod validation failed — includes `details` array with field-level messages |\n| `INVALID_CREDENTIALS` | 401 | Wrong bankUserId or password |\n| `ACCOUNT_LOCKED` | 401 | 5 failed login attempts — includes `remainingSeconds` in `error.details` |\n| `ACCOUNT_INACTIVE` | 400 | User account is deactivated (`isActive: false`) |\n| `ACCOUNT_FROZEN` | 403 | Bank account status is not active |\n| `ACCOUNT_NOT_OWNED` | 403 | Source account does not belong to the logged-in user (debit/transfer) |\n| `TOKEN_EXPIRED` | 401 | JWT access or refresh token has expired |\n| `TOKEN_INVALID` | 401 | JWT is malformed or signature mismatch |\n| `TOKEN_REUSE_DETECTED` | 401 | Refresh token family compromise — all sessions revoked |\n| `MUST_CHANGE_PASSWORD` | 403 | Temporary password must be changed — only `/profile/password` is accessible |\n| `FORBIDDEN` | 403 | Valid token but insufficient role |\n| `USER_NOT_FOUND` | 404 | No user with given id or bankUserId |\n| `ACCOUNT_NOT_FOUND` | 404 | No account with given account number |\n| `EMAIL_EXISTS` | 409 | Email already registered |\n| `NATIONAL_ID_EXISTS` | 409 | National ID already registered |\n| `INSUFFICIENT_FUNDS` | 400 | Balance would go negative — no overdraft allowed |\n| `CURRENCY_MISMATCH` | 400 | Transfer between accounts of different currencies |\n| `SAME_ACCOUNT` | 400 | Transfer source and destination are the same account |\n| `CANNOT_DELETE_ADMIN` | 409 | Cannot delete the last admin account |\n| `INVALID_CURRENT_PASSWORD` | 401 | Wrong current password on password change |\n| `INTERNAL_ERROR` | 500 | Unexpected server error |"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
