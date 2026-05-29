@@ -7,7 +7,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
   PORT: z.coerce.number().int().positive().default(5000),
 
   // MySQL
@@ -34,7 +34,7 @@ const envSchema = z.object({
   CORS_ORIGINS: z.string().min(1, 'CORS_ORIGINS is required'),
 
   // Logging
-  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+  LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'silent']).default('info'),
 
   // Email (future)
   CONTACT_EMAIL: z.string().email().default('mbadwy480@gmail.com'),

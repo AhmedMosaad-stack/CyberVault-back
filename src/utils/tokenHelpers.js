@@ -25,7 +25,7 @@ function signAccessToken(payload) {
  * @returns {string} Signed JWT
  */
 function signRefreshToken(payload) {
-  return jwt.sign(payload, config.JWT_REFRESH_SECRET, {
+  return jwt.sign({ ...payload, jti: crypto.randomUUID() }, config.JWT_REFRESH_SECRET, {
     expiresIn: config.JWT_REFRESH_EXPIRES_IN,
   });
 }

@@ -1,8 +1,10 @@
 import rateLimit from 'express-rate-limit';
+import config from '../config/index.js';
 
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
+  skip: () => config.NODE_ENV === 'test',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -19,6 +21,7 @@ const loginLimiter = rateLimit({
 const refreshLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 30,
+  skip: () => config.NODE_ENV === 'test',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {
@@ -35,6 +38,7 @@ const refreshLimiter = rateLimit({
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
+  skip: () => config.NODE_ENV === 'test',
   standardHeaders: true,
   legacyHeaders: false,
   handler: (_req, res) => {

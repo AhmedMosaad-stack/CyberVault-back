@@ -5,7 +5,7 @@ import logger from '../utils/logger.js';
  * Catches all errors passed via next(err).
  * Maps Sequelize-specific errors to appropriate error codes.
  */
-// eslint-disable-next-line no-unused-vars
+ 
 function errorHandler(err, req, res, _next) {
   logger.error({
     err,
