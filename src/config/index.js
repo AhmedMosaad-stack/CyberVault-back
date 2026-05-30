@@ -1,8 +1,21 @@
 import dotenv from 'dotenv';
 import { z } from 'zod';
+import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-// Load .env file in non-production environments
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV === 'production') {
+  try {
+    const client = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
+    const response = await client.send(
+      new GetSecretValueCommand({ SecretId: 'bank-backend/production' })
+    );
+    const secrets = JSON.parse(response.SecretString);
+    Object.assign(process.env, secrets);
+  } catch (err) {
+    console.error('\nFailed to load secrets from AWS Secrets Manager:', err.message, '\n');
+    process.exit(1);
+  }
+} else {
+  // Load .env file in non-production environments
   dotenv.config();
 }
 
