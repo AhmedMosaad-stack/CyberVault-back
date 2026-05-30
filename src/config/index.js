@@ -56,6 +56,7 @@ const envSchema = z.object({
   CONTACT_EMAIL: z.string().email().default('mbadwy480@gmail.com'),
 });
 
+console.log('[DEBUG] DB_HOST right before parse:', process.env.DB_HOST);
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
