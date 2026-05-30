@@ -76,6 +76,7 @@ async function startServer() {
       shutdown('uncaughtException');
     });
   } catch (err) {
+    console.error('\n[FATAL] Server failed to start:', err, '\n');
     logger.fatal({ err }, 'Failed to start server');
     process.exit(1);
   }
