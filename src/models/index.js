@@ -14,9 +14,6 @@ import ContactMessage from './ContactMessage.model.js';
 User.hasOne(Account, { foreignKey: 'userId', onDelete: 'RESTRICT' });
 Account.belongsTo(User, { foreignKey: 'userId' });
 
-// User → User (self-referencing for createdBy)
-User.belongsTo(User, { as: 'creator', foreignKey: 'createdBy' });
-
 // User → Transactions (one-to-many via initiatedBy)
 User.hasMany(Transaction, { foreignKey: 'initiatedBy', onDelete: 'RESTRICT' });
 Transaction.belongsTo(User, { foreignKey: 'initiatedBy', as: 'initiator' });

@@ -1,26 +1,7 @@
-import dotenv from 'dotenv';
+// import dotenv from 'dotenv';
 import { z } from 'zod';
-import { SecretsManagerClient, GetSecretValueCommand } from '@aws-sdk/client-secrets-manager';
 
-if (process.env.NODE_ENV === 'production') {
-  console.log('[DEBUG] Inside production block');
-  try {
-    const client = new SecretsManagerClient({ region: process.env.AWS_REGION || 'us-east-1' });
-    const response = await client.send(
-      new GetSecretValueCommand({ SecretId: 'bank-backend/production' })
-    );
-    const secrets = JSON.parse(response.SecretString);
-    console.log('[DEBUG] Fetched secrets length:', Object.keys(secrets).length);
-    Object.assign(process.env, secrets);
-    console.log('[DEBUG] Assigned DB_HOST to process.env:', process.env.DB_HOST);
-  } catch (err) {
-    console.error('\nFailed to load secrets from AWS Secrets Manager:', err.message, '\n');
-    process.exit(1);
-  }
-} else {
-  // Load .env file in non-production environments
-  dotenv.config();
-}
+
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test', 'staging']).default('development'),
@@ -56,11 +37,7 @@ const envSchema = z.object({
   CONTACT_EMAIL: z.string().email().default('mbadwy480@gmail.com'),
 });
 
-console.error('[DEBUG] process.env.DB_HOST right before parse:', process.env.DB_HOST);
-const envObj = { ...process.env };
-console.error('[DEBUG] envObj.DB_HOST right before parse:', envObj.DB_HOST);
-
-const parsed = envSchema.safeParse(envObj);
+const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
   const formatted = parsed.error.issues

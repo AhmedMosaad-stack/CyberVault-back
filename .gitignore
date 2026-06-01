@@ -24,3 +24,5 @@ Thumbs.db
 *.md
 CyberVault_Postman_Collection.json
 
+# AWS / SSH Keys
+*.pem

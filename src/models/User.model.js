@@ -110,6 +110,7 @@ const User = sequelize.define(
     createdBy: {
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: { model: 'Users', key: 'id' },
       onDelete: 'SET NULL',
     },
   },
