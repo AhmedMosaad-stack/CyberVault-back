@@ -26,3 +26,4 @@ CyberVault_Postman_Collection.json
 
 # AWS / SSH Keys
 *.pem
+*.cjs
