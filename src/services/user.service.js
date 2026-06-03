@@ -252,7 +252,7 @@ class UserService {
       ipAddress,
     });
 
-    sendRegistrationEmail(user.email, user.name, bankUserId, temporaryPassword, user.role).catch(() => {});
+    sendRegistrationEmail(user.email, user.name, bankUserId, temporaryPassword, user.role, accountNumber).catch(() => {});
 
     return {
       data: {
