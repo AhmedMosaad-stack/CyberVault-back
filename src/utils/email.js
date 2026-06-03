@@ -29,7 +29,7 @@ export async function sendRegistrationEmail(userEmail, userName, bankUserId, pas
       from: `"CyberVault Bank" <${config.SMTP_FROM_EMAIL}>`,
       to: userEmail,
       subject: 'Welcome to CyberVault Bank - Your Account Details',
-      text: `Hello ${userName},\n\nWelcome to CyberVault Bank! Your ${accountNumber ? `account ${accountNumber}` : `${role} account`} has been successfully created.\n\nHere are your login credentials:\nBank ID: ${bankUserId}\nTemporary Password: ${password}${accountNumber ? `\nAccount Number: ${accountNumber}` : ''}\n\nPlease log in and change your password immediately.\n\nBest regards,\nThe CyberVault Team`,
+      text: `Hello ${userName},\n\nWelcome to CyberVault Bank! Your bank ${accountNumber ? `account ${accountNumber}` : `${role} account`} has been successfully created.\n\nHere are your login credentials:\nBank ID: ${bankUserId}\nTemporary Password: ${password}${accountNumber ? `\nAccount Number: ${accountNumber}` : ''}\n\nPlease log in and change your password immediately.\n\nBest regards,\nThe CyberVault Team`,
       html: `
         <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden;">
           <div style="background-color: #0f172a; color: #fff; padding: 20px; text-align: center;">
@@ -40,7 +40,6 @@ export async function sendRegistrationEmail(userEmail, userName, bankUserId, pas
             <p>Your <strong>${accountNumber ? `account ${accountNumber}` : `${roleTitle} account`}</strong> has been successfully created.</p>
             <div style="background-color: #f8fafc; border-left: 4px solid #3b82f6; padding: 15px; margin: 20px 0;">
               <p style="margin: 0 0 10px 0;"><strong>Your Account Details & Credentials:</strong></p>
-              ${accountNumber ? `<p style="margin: 0 0 5px 0;">Account Number: <strong>${accountNumber}</strong></p>` : ''}
               <p style="margin: 0 0 5px 0;">Bank ID: <strong>${bankUserId}</strong></p>
               <p style="margin: 0;">Temporary Password: <strong>${password}</strong></p>
             </div>
