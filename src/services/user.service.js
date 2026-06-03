@@ -8,6 +8,7 @@ import Transaction from '../models/Transaction.model.js';
 import { encrypt, decrypt, hmacHash } from '../utils/encryption.js';
 import { generateBankUserId } from '../utils/bankUserId.js';
 import { generateAccountNumber } from '../utils/accountNumber.js';
+import { sendRegistrationEmail } from '../utils/email.js';
 
 
 class UserService {
@@ -251,7 +252,7 @@ class UserService {
       ipAddress,
     });
 
-
+    sendRegistrationEmail(user.email, user.name, bankUserId, temporaryPassword, user.role).catch(() => {});
 
     return {
       data: {
@@ -325,7 +326,7 @@ class UserService {
       ipAddress,
     });
 
-
+    sendRegistrationEmail(user.email, user.name, bankUserId, temporaryPassword, user.role).catch(() => {});
 
     return {
       data: {

@@ -33,8 +33,13 @@ const envSchema = z.object({
   // Logging
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'silent']).default('info'),
 
-  // Email (future)
+  // Email
   CONTACT_EMAIL: z.string().email().default('mbadwy480@gmail.com'),
+  SMTP_HOST: z.string().min(1, 'SMTP_HOST is required'),
+  SMTP_PORT: z.coerce.number().int().positive().default(2525),
+  SMTP_USER: z.string().min(1, 'SMTP_USER is required'),
+  SMTP_PASSWORD: z.string().min(1, 'SMTP_PASSWORD is required'),
+  SMTP_FROM_EMAIL: z.string().email().min(1, 'SMTP_FROM_EMAIL is required'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -65,6 +70,11 @@ const config = Object.freeze({
   CORS_ORIGINS: parsed.data.CORS_ORIGINS.split(',').map((s) => s.trim()),
   LOG_LEVEL: parsed.data.LOG_LEVEL,
   CONTACT_EMAIL: parsed.data.CONTACT_EMAIL,
+  SMTP_HOST: parsed.data.SMTP_HOST,
+  SMTP_PORT: parsed.data.SMTP_PORT,
+  SMTP_USER: parsed.data.SMTP_USER,
+  SMTP_PASSWORD: parsed.data.SMTP_PASSWORD,
+  SMTP_FROM_EMAIL: parsed.data.SMTP_FROM_EMAIL,
 });
 
 export default config;
