@@ -2,13 +2,9 @@ import AccountRepository from '../repositories/AccountRepository.js';
 import TransactionRepository from '../repositories/TransactionRepository.js';
 import NotificationRepository from '../repositories/NotificationRepository.js';
 import AuditEventRepository from '../repositories/AuditEventRepository.js';
-import BaseRepository from '../repositories/BaseRepository.js';
+import { withTransaction } from '../config/db.js';
 import { decrypt, hmacHash } from '../utils/encryption.js';
 import { sendTransactionEmail } from '../utils/email.js';
-
-
-// BaseRepository instance solely for withTransaction()
-const baseRepo = new BaseRepository(null);
 
 class TransactionService {
   async credit(accountNumber, amount, description, initiatedBy, userRole, ipAddress) {
@@ -22,7 +18,7 @@ class TransactionService {
       return { error: { code: 'ACCOUNT_FROZEN', status: 403, message: 'Account is not active' } };
     }
 
-    const transaction = await baseRepo.withTransaction(async (t) => {
+    const transaction = await withTransaction(async (t) => {
       await AccountRepository.creditBalance(account.id, amount, t);
       const updated = await AccountRepository.findById(account.id, { transaction: t });
       return TransactionRepository.create(
@@ -102,7 +98,7 @@ class TransactionService {
       return { error: { code: 'INSUFFICIENT_FUNDS', status: 400, message: 'Insufficient funds' } };
     }
 
-    const transaction = await baseRepo.withTransaction(async (t) => {
+    const transaction = await withTransaction(async (t) => {
       const affectedRows = await AccountRepository.debitBalance(account.id, amount, t);
       if (affectedRows === 0) {
         const err = new Error('Insufficient funds');
@@ -198,7 +194,7 @@ class TransactionService {
       return { error: { code: 'INSUFFICIENT_FUNDS', status: 400, message: 'Insufficient funds' } };
     }
 
-    const transaction = await baseRepo.withTransaction(async (t) => {
+    const transaction = await withTransaction(async (t) => {
       const affectedRows = await AccountRepository.debitBalance(fromAccount.id, amount, t);
       if (affectedRows === 0) {
         const err = new Error('Insufficient funds');

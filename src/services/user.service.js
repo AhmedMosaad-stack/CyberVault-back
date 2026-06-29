@@ -11,6 +11,49 @@ import { generateAccountNumber } from '../utils/accountNumber.js';
 import { sendRegistrationEmail } from '../utils/email.js';
 
 
+/**
+ * Build the shared user DTO (identity + decrypted phone + account + department).
+ * Callers append the field that differs by context: `mustChangePassword` for the
+ * owner's own profile, `isActive` for admin/employee lookups.
+ */
+function buildUserDTO(user, account) {
+  let accountData = null;
+  if (account) {
+    accountData = {
+      accountNumber: decrypt(account.accountNumberEncrypted),
+      accountType: account.accountType,
+      currency: account.currency,
+      balance: account.balance,
+      accountStatus: account.accountStatus,
+    };
+  }
+
+  let department = null;
+  if (user.role === 'admin' || user.role === 'employee') {
+    department = {
+      departmentName: user.departmentName,
+      departmentRegion: user.departmentRegion,
+      departmentRole: user.departmentRole,
+      departmentSince: user.departmentSince,
+      departmentStatus: user.departmentStatus,
+    };
+  }
+
+  return {
+    id: user.id,
+    bankUserId: user.bankUserId,
+    name: user.name,
+    email: user.email,
+    phone: user.phoneEncrypted ? decrypt(user.phoneEncrypted) : null,
+    dateOfBirth: user.dateOfBirth,
+    gender: user.gender,
+    role: user.role,
+    department,
+    account: accountData,
+    createdAt: user.createdAt,
+  };
+}
+
 class UserService {
   async getProfile(userId) {
     const user = await UserRepository.findById(userId);
@@ -19,45 +62,9 @@ class UserService {
     }
 
     const account = await AccountRepository.findByUserId(userId);
-    const phone = user.phoneEncrypted ? decrypt(user.phoneEncrypted) : null;
-
-    let accountData = null;
-    if (account) {
-      accountData = {
-        accountNumber: decrypt(account.accountNumberEncrypted),
-        accountType: account.accountType,
-        currency: account.currency,
-        balance: account.balance,
-        accountStatus: account.accountStatus,
-      };
-    }
-
-    let department = null;
-    if (user.role === 'admin' || user.role === 'employee') {
-      department = {
-        departmentName: user.departmentName,
-        departmentRegion: user.departmentRegion,
-        departmentRole: user.departmentRole,
-        departmentSince: user.departmentSince,
-        departmentStatus: user.departmentStatus,
-      };
-    }
 
     return {
-      data: {
-        id: user.id,
-        bankUserId: user.bankUserId,
-        name: user.name,
-        email: user.email,
-        phone,
-        dateOfBirth: user.dateOfBirth,
-        gender: user.gender,
-        role: user.role,
-        mustChangePassword: user.mustChangePassword,
-        department,
-        account: accountData,
-        createdAt: user.createdAt,
-      },
+      data: { ...buildUserDTO(user, account), mustChangePassword: user.mustChangePassword },
     };
   }
 
@@ -130,45 +137,9 @@ class UserService {
     }
 
     const account = await AccountRepository.findByUserId(id);
-    const phone = user.phoneEncrypted ? decrypt(user.phoneEncrypted) : null;
-
-    let accountData = null;
-    if (account) {
-      accountData = {
-        accountNumber: decrypt(account.accountNumberEncrypted),
-        accountType: account.accountType,
-        currency: account.currency,
-        balance: account.balance,
-        accountStatus: account.accountStatus,
-      };
-    }
-
-    let department = null;
-    if (user.role === 'admin' || user.role === 'employee') {
-      department = {
-        departmentName: user.departmentName,
-        departmentRegion: user.departmentRegion,
-        departmentRole: user.departmentRole,
-        departmentSince: user.departmentSince,
-        departmentStatus: user.departmentStatus,
-      };
-    }
 
     return {
-      data: {
-        id: user.id,
-        bankUserId: user.bankUserId,
-        name: user.name,
-        email: user.email,
-        phone,
-        dateOfBirth: user.dateOfBirth,
-        gender: user.gender,
-        role: user.role,
-        isActive: user.isActive,
-        department,
-        account: accountData,
-        createdAt: user.createdAt,
-      },
+      data: { ...buildUserDTO(user, account), isActive: user.isActive },
     };
   }
 

@@ -25,4 +25,18 @@ async function connectDB() {
 
 }
 
-export { sequelize, connectDB };
+/**
+ * Run a callback inside a SERIALIZABLE transaction. Rolls back automatically if
+ * the callback throws.
+ *
+ * @param {Function} callback - receives the Sequelize transaction object `t`
+ * @returns {*} the callback's result
+ */
+function withTransaction(callback) {
+  return sequelize.transaction(
+    { isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE },
+    callback
+  );
+}
+
+export { sequelize, connectDB, withTransaction };

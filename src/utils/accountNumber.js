@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import AccountRepository from '../repositories/AccountRepository.js';
 import { hmacHash } from './encryption.js';
 
@@ -11,13 +12,10 @@ async function generateAccountNumber() {
   const MAX_ATTEMPTS = 100;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    let accountNumber = '';
-    for (let i = 0; i < 14; i++) {
-      accountNumber += Math.floor(Math.random() * 10).toString();
-    }
-    // Ensure it doesn't start with 0
-    if (accountNumber[0] === '0') {
-      accountNumber = (Math.floor(Math.random() * 9) + 1).toString() + accountNumber.slice(1);
+    // First digit 1–9 (no leading zero), then 13 digits 0–9.
+    let accountNumber = crypto.randomInt(1, 10).toString();
+    for (let i = 0; i < 13; i++) {
+      accountNumber += crypto.randomInt(0, 10).toString();
     }
 
     const hash = hmacHash(accountNumber);

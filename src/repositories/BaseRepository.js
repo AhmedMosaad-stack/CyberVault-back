@@ -1,4 +1,3 @@
-import { Sequelize } from 'sequelize';
 import { sequelize } from '../config/db.js';
 
 /**
@@ -42,20 +41,6 @@ class BaseRepository {
 
   async findAndCountAll(where = {}, options = {}) {
     return this.model.findAndCountAll({ where, ...options });
-  }
-
-  /**
-   * Execute a callback within a SERIALIZABLE transaction.
-   * If callback throws, the transaction is automatically rolled back.
-   *
-   * @param {Function} callback - receives Sequelize transaction object `t`
-   * @returns {*} Result of the callback
-   */
-  async withTransaction(callback) {
-    return this.sequelize.transaction(
-      { isolationLevel: Sequelize.Transaction.ISOLATION_LEVELS.SERIALIZABLE },
-      callback
-    );
   }
 }
 

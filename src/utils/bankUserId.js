@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import UserRepository from '../repositories/UserRepository.js';
 
 /**
@@ -11,10 +12,8 @@ async function generateBankUserId() {
   const MAX_ATTEMPTS = 100;
 
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-    const min = 30000001;
-    const max = 99999999;
-    const id = Math.floor(Math.random() * (max - min + 1)) + min;
-    const bankUserId = id.toString();
+    // Range 30000001–99999999 (upper bound exclusive in randomInt).
+    const bankUserId = crypto.randomInt(30000001, 100000000).toString();
 
     const existing = await UserRepository.findByBankUserId(bankUserId);
     if (!existing) {

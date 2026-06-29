@@ -42,20 +42,12 @@ jest.unstable_mockModule('../../../src/repositories/AuditEventRepository.js', ()
   },
 }));
 
-// Mock BaseRepository.withTransaction to run callback directly (no real DB transaction)
-jest.unstable_mockModule('../../../src/repositories/BaseRepository.js', () => {
-  class MockBaseRepository {
-    constructor() {
-      this.model = null;
-      this.sequelize = null;
-    }
-    async withTransaction(callback) {
-      const mockTransaction = { id: 'mock-transaction' };
-      return callback(mockTransaction);
-    }
-  }
-  return { default: MockBaseRepository };
-});
+// Mock the db helper so withTransaction runs the callback directly (no real DB).
+jest.unstable_mockModule('../../../src/config/db.js', () => ({
+  sequelize: {},
+  withTransaction: async (callback) => callback({ id: 'mock-transaction' }),
+  connectDB: jest.fn(),
+}));
 
 // Mock UserRepository — used by credit/debit/transfer to look up the
 // account owner for notification emails.
