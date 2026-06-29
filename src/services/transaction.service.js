@@ -4,6 +4,7 @@ import NotificationRepository from '../repositories/NotificationRepository.js';
 import AuditEventRepository from '../repositories/AuditEventRepository.js';
 import BaseRepository from '../repositories/BaseRepository.js';
 import { decrypt, hmacHash } from '../utils/encryption.js';
+import { sendTransactionEmail } from '../utils/email.js';
 
 
 // BaseRepository instance solely for withTransaction()
@@ -78,7 +79,19 @@ class TransactionService {
       ipAddress,
     });
 
-
+    const { default: UserRepository } = await import('../repositories/UserRepository.js');
+    const user = await UserRepository.findById(account.userId);
+    if (user && user.email) {
+      sendTransactionEmail(
+        user.email,
+        user.name,
+        'credit',
+        amount,
+        account.currency,
+        transaction.balanceAfter,
+        description
+      );
+    }
 
     return {
       data: {
@@ -151,7 +164,19 @@ class TransactionService {
       ipAddress,
     });
 
-
+    const { default: UserRepository } = await import('../repositories/UserRepository.js');
+    const user = await UserRepository.findById(account.userId);
+    if (user && user.email) {
+      sendTransactionEmail(
+        user.email,
+        user.name,
+        'debit',
+        amount,
+        account.currency,
+        transaction.balanceAfter,
+        description
+      );
+    }
 
     return {
       data: {
@@ -242,7 +267,32 @@ class TransactionService {
       ipAddress,
     });
 
+    const { default: UserRepository } = await import('../repositories/UserRepository.js');
+    const fromUser = await UserRepository.findById(fromAccount.userId);
+    if (fromUser && fromUser.email) {
+      sendTransactionEmail(
+        fromUser.email,
+        fromUser.name,
+        'transfer_sent',
+        amount,
+        fromAccount.currency,
+        transaction.balanceAfter,
+        description
+      );
+    }
 
+    const toUser = await UserRepository.findById(toAccount.userId);
+    if (toUser && toUser.email) {
+      sendTransactionEmail(
+        toUser.email,
+        toUser.name,
+        'transfer_received',
+        amount,
+        toAccount.currency,
+        parseFloat(toAccount.balance) + amount,
+        description
+      );
+    }
 
     return {
       data: {
