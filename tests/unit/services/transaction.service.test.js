@@ -84,6 +84,9 @@ function createMockAccount(overrides = {}) {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Default: the post-mutation re-read inside the transaction returns an account.
+  // Individual tests override the balance to assert balanceAfter.
+  mockFindById_Account.mockResolvedValue(createMockAccount());
   mockCreateTransaction.mockResolvedValue({
     id: 1,
     type: 'credit',
@@ -122,6 +125,16 @@ describe('TransactionService', () => {
       await transactionService.credit('10000000000001', 500, null, 1, 'admin', '127.0.0.1');
 
       expect(mockCreditBalance).toHaveBeenCalledWith(account.id, 500, expect.anything());
+    });
+
+    test('balanceAfter is taken from the post-credit re-read, not the stale pre-read', async () => {
+      mockFindByAccountNumberHash.mockResolvedValue(createMockAccount({ balance: 10000 }));
+      // Simulate a concurrent credit: true post-mutation balance differs from 10000 + 500.
+      mockFindById_Account.mockResolvedValue(createMockAccount({ balance: 11200 }));
+
+      await transactionService.credit('10000000000001', 500, null, 1, 'admin', '127.0.0.1');
+
+      expect(mockCreateTransaction.mock.calls[0][0].balanceAfter).toBe(11200);
     });
   });
 

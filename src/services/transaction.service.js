@@ -47,6 +47,7 @@ class TransactionService {
 
     const transaction = await baseRepo.withTransaction(async (t) => {
       await AccountRepository.creditBalance(account.id, amount, t);
+      const updated = await AccountRepository.findById(account.id, { transaction: t });
       return TransactionRepository.create(
         {
           type: 'credit',
@@ -55,7 +56,7 @@ class TransactionService {
           fromAccountId: null,
           toAccountId: account.id,
           initiatedBy,
-          balanceAfter: parseFloat(account.balance) + amount,
+          balanceAfter: parseFloat(updated.balance),
           description: description || null,
           status: 'completed',
         },
@@ -132,6 +133,7 @@ class TransactionService {
         err.status = 400;
         throw err;
       }
+      const updated = await AccountRepository.findById(account.id, { transaction: t });
       return TransactionRepository.create(
         {
           type: 'debit',
@@ -140,7 +142,7 @@ class TransactionService {
           fromAccountId: account.id,
           toAccountId: null,
           initiatedBy,
-          balanceAfter: parseFloat(account.balance) - amount,
+          balanceAfter: parseFloat(updated.balance),
           description: description || null,
           status: 'completed',
         },
@@ -228,6 +230,7 @@ class TransactionService {
         throw err;
       }
       await AccountRepository.creditBalance(toAccount.id, amount, t);
+      const updatedFrom = await AccountRepository.findById(fromAccount.id, { transaction: t });
       return TransactionRepository.create(
         {
           type: 'transfer',
@@ -236,7 +239,7 @@ class TransactionService {
           fromAccountId: fromAccount.id,
           toAccountId: toAccount.id,
           initiatedBy,
-          balanceAfter: parseFloat(fromAccount.balance) - amount,
+          balanceAfter: parseFloat(updatedFrom.balance),
           description: description || null,
           status: 'completed',
         },
@@ -283,13 +286,14 @@ class TransactionService {
 
     const toUser = await UserRepository.findById(toAccount.userId);
     if (toUser && toUser.email) {
+      const updatedToAccount = await AccountRepository.findById(toAccount.id);
       sendTransactionEmail(
         toUser.email,
         toUser.name,
         'transfer_received',
         amount,
         toAccount.currency,
-        parseFloat(toAccount.balance) + amount,
+        parseFloat(updatedToAccount.balance),
         description
       );
     }
