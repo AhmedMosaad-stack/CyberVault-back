@@ -57,7 +57,8 @@ jest.unstable_mockModule('../../../src/repositories/BaseRepository.js', () => {
   return { default: MockBaseRepository };
 });
 
-// Mock UserRepository for lookupAccount
+// Mock UserRepository — used by credit/debit/transfer to look up the
+// account owner for notification emails.
 jest.unstable_mockModule('../../../src/repositories/UserRepository.js', () => ({
   default: {
     findById: jest.fn().mockResolvedValue({ id: 1, name: 'Test', bankUserId: '30000001' }),

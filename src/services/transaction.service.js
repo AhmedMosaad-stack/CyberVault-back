@@ -11,29 +11,6 @@ import { sendTransactionEmail } from '../utils/email.js';
 const baseRepo = new BaseRepository(null);
 
 class TransactionService {
-  async lookupAccount(accountNumber) {
-    const hash = hmacHash(accountNumber);
-    const account = await AccountRepository.findByAccountNumberHash(hash);
-
-    if (!account) {
-      return { error: { code: 'ACCOUNT_NOT_FOUND', status: 404, message: 'Account not found' } };
-    }
-
-    // Lazy import to break circular dependency
-    const { default: UserRepository } = await import('../repositories/UserRepository.js');
-    const user = await UserRepository.findById(account.userId);
-
-    return {
-      data: {
-        id: account.id,
-        accountNumber: decrypt(account.accountNumberEncrypted),
-        currency: account.currency,
-        accountStatus: account.accountStatus,
-        owner: { name: user.name, bankUserId: user.bankUserId },
-      },
-    };
-  }
-
   async credit(accountNumber, amount, description, initiatedBy, userRole, ipAddress) {
     const hash = hmacHash(accountNumber);
     const account = await AccountRepository.findByAccountNumberHash(hash);
