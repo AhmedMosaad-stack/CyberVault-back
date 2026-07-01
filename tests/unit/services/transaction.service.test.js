@@ -143,6 +143,20 @@ describe('TransactionService', () => {
       expect(mockDebitBalance).not.toHaveBeenCalled();
     });
 
+    test('admin can debit an account owned by another user', async () => {
+      const account = createMockAccount({ balance: 5000, userId: 999 }); // Different user
+      mockFindByAccountNumberHash.mockResolvedValue(account);
+      mockDebitBalance.mockResolvedValue(1);
+      mockCreateTransaction.mockResolvedValue({
+        id: 1, type: 'debit', amount: 500, currency: 'EGP', balanceAfter: 4500, createdAt: new Date(),
+      });
+
+      const result = await transactionService.debit('10000000000001', 500, null, 1, 'admin', '127.0.0.1');
+
+      expect(result.data).toBeDefined();
+      expect(mockDebitBalance).toHaveBeenCalled();
+    });
+
     test('debit exact balance (result = 0.00) succeeds', async () => {
       const account = createMockAccount({ balance: 500, userId: 1 });
       mockFindByAccountNumberHash.mockResolvedValue(account);
@@ -181,6 +195,23 @@ describe('TransactionService', () => {
 
       expect(result.error.code).toBe('ACCOUNT_NOT_OWNED');
       expect(result.error.status).toBe(403);
+    });
+
+    test('employee can transfer from an account owned by another user', async () => {
+      const fromAccount = createMockAccount({ id: 1, userId: 999, currency: 'EGP' });
+      const toAccount = createMockAccount({ id: 2, userId: 2, currency: 'EGP' });
+      mockFindByAccountNumberHash
+        .mockResolvedValueOnce(fromAccount)
+        .mockResolvedValueOnce(toAccount);
+      mockDebitBalance.mockResolvedValue(1);
+      mockCreateTransaction.mockResolvedValue({
+        id: 1, type: 'transfer', amount: 500, currency: 'EGP', balanceAfter: 9500, createdAt: new Date(),
+      });
+
+      const result = await transactionService.transfer('10000000000001', '10000000000002', 500, null, 1, 'employee', '127.0.0.1');
+
+      expect(result.data).toBeDefined();
+      expect(mockDebitBalance).toHaveBeenCalled();
     });
 
     test('transfer where source is owned by logged-in user, destination is not — succeeds', async () => {

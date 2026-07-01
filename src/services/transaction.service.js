@@ -88,7 +88,7 @@ class TransactionService {
     if (!account) {
       return { error: { code: 'ACCOUNT_NOT_FOUND', status: 404, message: 'Account not found' } };
     }
-    if (account.userId !== initiatedBy) {
+    if (userRole === 'user' && account.userId !== initiatedBy) {
       return { error: { code: 'ACCOUNT_NOT_OWNED', status: 403, message: 'You can only debit your own account' } };
     }
     if (account.accountStatus !== 'active') {
@@ -181,7 +181,7 @@ class TransactionService {
     if (!toAccount) {
       return { error: { code: 'ACCOUNT_NOT_FOUND', status: 404, message: 'Destination account not found' } };
     }
-    if (fromAccount.userId !== initiatedBy) {
+    if (userRole === 'user' && fromAccount.userId !== initiatedBy) {
       return { error: { code: 'ACCOUNT_NOT_OWNED', status: 403, message: 'You can only transfer from your own account' } };
     }
     if (fromAccount.accountStatus !== 'active' || toAccount.accountStatus !== 'active') {
