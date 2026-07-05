@@ -1,5 +1,6 @@
 import authService from '../services/auth.service.js';
 import config from '../config/index.js';
+import { loginLimiter } from '../middleware/rateLimiter.js';
 
 class AuthController {
   async login(req, res, next) {
@@ -11,6 +12,8 @@ class AuthController {
         const { status, ...error } = result.error;
         return res.status(status).json({ success: false, error });
       }
+
+      loginLimiter.resetKey(req.ip); // clear failed-attempt count on successful login
 
       const { accessToken, rawRefreshToken, expiresAt, mustChangePassword, user } = result.data;
 
